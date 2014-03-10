@@ -1,0 +1,1 @@
+checkinstall --pkgname maliit-framework --pkgversion "0.94-qt4" make install

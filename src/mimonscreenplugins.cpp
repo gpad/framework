@@ -26,222 +26,237 @@ using namespace std::tr1::placeholders;
 
 namespace
 {
-    const char * const EnabledSubViews = MALIIT_CONFIG_ROOT"onscreen/enabled";
-    const char * const ActiveSubView   = MALIIT_CONFIG_ROOT"onscreen/active";
+	const char * const EnabledSubViews = MALIIT_CONFIG_ROOT"onscreen/enabled";
+	const char * const ActiveSubView   = MALIIT_CONFIG_ROOT"onscreen/active";
 
-    bool equalPlugin(const MImOnScreenPlugins::SubView &subView, const QString &plugin)
-    {
-        return subView.plugin == plugin;
-    }
+	bool equalPlugin(const MImOnScreenPlugins::SubView &subView, const QString &plugin)
+	{
+		return subView.plugin == plugin;
+	}
 
-    bool notEqualPlugin(const MImOnScreenPlugins::SubView &subView, const QString &plugin)
-    {
-        return subView.plugin != plugin;
-    }
+	bool notEqualPlugin(const MImOnScreenPlugins::SubView &subView, const QString &plugin)
+	{
+		return subView.plugin != plugin;
+	}
 
-    QStringList toSettings(const QList<MImOnScreenPlugins::SubView> &subViews)
-    {
-        QStringList result;
+	QStringList toSettings(const QList<MImOnScreenPlugins::SubView> &subViews)
+	{
+		QStringList result;
 
-        Q_FOREACH(const MImOnScreenPlugins::SubView &subView, subViews) {
-            result.push_back(subView.plugin + ":" + subView.id);
-        }
+		Q_FOREACH(const MImOnScreenPlugins::SubView &subView, subViews) {
+			result.push_back(subView.plugin + ":" + subView.id);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    QList<MImOnScreenPlugins::SubView> fromSettings(const QStringList& list)
-    {
-        QList<MImOnScreenPlugins::SubView> result;
+	QList<MImOnScreenPlugins::SubView> fromSettings(const QStringList& list)
+	{
+		QList<MImOnScreenPlugins::SubView> result;
 
-        Q_FOREACH (const QString &value, list) {
-            QString plugin = value.section(':', 0, 0);
-            QString subview = value.section(':', 1, -1);
+		Q_FOREACH (const QString &value, list) {
+			QString plugin = value.section(':', 0, 0);
+			QString subview = value.section(':', 1, -1);
 
-            result.push_back(MImOnScreenPlugins::SubView(plugin, subview));
-        }
+			result.push_back(MImOnScreenPlugins::SubView(plugin, subview));
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    QSet<QString> findEnabledPlugins(const QList<MImOnScreenPlugins::SubView> &enabledSubViews)
-    {
-        QSet<QString> result;
+	QSet<QString> findEnabledPlugins(const QList<MImOnScreenPlugins::SubView> &enabledSubViews)
+	{
+		QSet<QString> result;
 
-        Q_FOREACH (const MImOnScreenPlugins::SubView &subView, enabledSubViews) {
-            result.insert(subView.plugin);
-        }
+		Q_FOREACH (const MImOnScreenPlugins::SubView &subView, enabledSubViews) {
+			result.insert(subView.plugin);
+		}
 
-        return result;
-    }
+		return result;
+	}
 }
 
 MImOnScreenPlugins::SubView::SubView()
-    : plugin()
-    , id()
+	: plugin()
+	, id()
 {}
 
 MImOnScreenPlugins::SubView::SubView(const QString &new_plugin,
-                                     const QString &new_id)
-    : plugin(new_plugin)
-    , id(new_id)
+									 const QString &new_id)
+	: plugin(new_plugin)
+	, id(new_id)
 {}
 
 bool MImOnScreenPlugins::SubView::operator==(const MImOnScreenPlugins::SubView &other) const
 {
-    return (plugin == other.plugin
-            && id == other.id);
+	return (plugin == other.plugin
+			&& id == other.id);
 }
 
 MImOnScreenPlugins::MImOnScreenPlugins():
-    QObject(),
-    mAvailableSubViews(),
-    mEnabledSubViews(),
-    mLastEnabledSubViews(),
-    mActiveSubView(),
-    mEnabledSubViewsSettings(EnabledSubViews),
-    mActiveSubViewSettings(ActiveSubView),
-    mAllSubviewsEnabled(false)
+	QObject(),
+	mAvailableSubViews(),
+	mEnabledSubViews(),
+	mLastEnabledSubViews(),
+	mActiveSubView(),
+	mEnabledSubViewsSettings(EnabledSubViews),
+	mActiveSubViewSettings(ActiveSubView),
+	mAllSubviewsEnabled(false)
 {
-    connect(&mEnabledSubViewsSettings, SIGNAL(valueChanged()),
-            this, SLOT(updateEnabledSubviews()));
-    connect(&mActiveSubViewSettings, SIGNAL(valueChanged()),
-            this, SLOT(updateActiveSubview()));
-    updateEnabledSubviews();
-    updateActiveSubview();
+	connect(&mEnabledSubViewsSettings, SIGNAL(valueChanged()),
+			this, SLOT(updateEnabledSubviews()));
+	connect(&mActiveSubViewSettings, SIGNAL(valueChanged()),
+			this, SLOT(updateActiveSubview()));
+	updateEnabledSubviews();
+	updateActiveSubview();
 }
 
 bool MImOnScreenPlugins::isEnabled(const QString &plugin) const
 {
-    QList<MImOnScreenPlugins::SubView> mEnabledAndAvailableSubViews;
+	QList<MImOnScreenPlugins::SubView> mEnabledAndAvailableSubViews;
 
-    std::remove_copy_if(mEnabledSubViews.begin(), mEnabledSubViews.end(),
-                        std::back_inserter(mEnabledAndAvailableSubViews),
-                        std::tr1::bind(&MImOnScreenPlugins::isSubViewUnavailable, this, _1));
+	std::remove_copy_if(mEnabledSubViews.begin(), mEnabledSubViews.end(),
+						std::back_inserter(mEnabledAndAvailableSubViews),
+						std::tr1::bind(&MImOnScreenPlugins::isSubViewUnavailable, this, _1));
 
-    return std::find_if(mEnabledAndAvailableSubViews.begin(), mEnabledAndAvailableSubViews.end(),
-                        std::tr1::bind(equalPlugin, _1, plugin)) != mEnabledAndAvailableSubViews.end();
+	return std::find_if(mEnabledAndAvailableSubViews.begin(), mEnabledAndAvailableSubViews.end(),
+						std::tr1::bind(equalPlugin, _1, plugin)) != mEnabledAndAvailableSubViews.end();
 }
 
 bool MImOnScreenPlugins::isSubViewEnabled(const SubView &subView) const
 {
-    return mEnabledSubViews.contains(subView);
+	return mEnabledSubViews.contains(subView);
 }
 
 QList<MImOnScreenPlugins::SubView> MImOnScreenPlugins::enabledSubViews() const
 {
-    return mEnabledSubViews;
+	return mEnabledSubViews;
 }
 
 QList<MImOnScreenPlugins::SubView> MImOnScreenPlugins::enabledSubViews(const QString &plugin) const
 {
-    QList<MImOnScreenPlugins::SubView> result;
-    std::remove_copy_if(mEnabledSubViews.begin(), mEnabledSubViews.end(),
-                        std::back_inserter(result), std::tr1::bind(notEqualPlugin, _1, plugin));
-    return result;
+	QList<MImOnScreenPlugins::SubView> result;
+	std::remove_copy_if(mEnabledSubViews.begin(), mEnabledSubViews.end(),
+						std::back_inserter(result), std::tr1::bind(notEqualPlugin, _1, plugin));
+	return result;
 }
 
 void MImOnScreenPlugins::setEnabledSubViews(const QList<MImOnScreenPlugins::SubView> &subViews)
 {
-    mEnabledSubViewsSettings.set(QVariant(toSettings(subViews)));
+	mEnabledSubViewsSettings.set(QVariant(toSettings(subViews)));
 }
 
 void MImOnScreenPlugins::setAutoEnabledSubViews(const QList<MImOnScreenPlugins::SubView> &subViews)
 {
-    // Update the enabled subviews list without saving the configuration to disk
-    mEnabledSubViews = subViews;
+	// Update the enabled subviews list without saving the configuration to disk
+	mEnabledSubViews = subViews;
 }
 
 void MImOnScreenPlugins::updateAvailableSubViews(const QList<SubView> &availableSubViews)
 {
-    mAvailableSubViews = availableSubViews;
+	mAvailableSubViews = availableSubViews;
 }
 
 bool MImOnScreenPlugins::isSubViewAvailable(const SubView &subview) const
 {
-    return mAvailableSubViews.contains(subview);
+	return mAvailableSubViews.contains(subview);
 }
 
 bool MImOnScreenPlugins::isSubViewUnavailable(const SubView &subview) const
 {
-    return !mAvailableSubViews.contains(subview);
+	return !mAvailableSubViews.contains(subview);
 }
 
 void MImOnScreenPlugins::updateEnabledSubviews()
 {
-    const QStringList &list = mEnabledSubViewsSettings.value().toStringList();
-    const QList<SubView> oldEnabledSubviews = mEnabledSubViews;
-    mEnabledSubViews = fromSettings(list);
+	const QStringList &list = mEnabledSubViewsSettings.value().toStringList();
+	const QList<SubView> oldEnabledSubviews = mEnabledSubViews;
+	mEnabledSubViews = fromSettings(list);
 
-    // Changed subviews cause emission of enabledPluginsChanged() signal
-    // because some subview from the setting might not really exists and therefore
-    // changed subview might have implications to enabled plugins.
-    if (mEnabledSubViews != oldEnabledSubviews) {
-        Q_EMIT enabledPluginsChanged();
-    }
+	// Changed subviews cause emission of enabledPluginsChanged() signal
+	// because some subview from the setting might not really exists and therefore
+	// changed subview might have implications to enabled plugins.
+	if (mEnabledSubViews != oldEnabledSubviews) {
+		Q_EMIT enabledPluginsChanged();
+	}
 }
 
 void MImOnScreenPlugins::updateActiveSubview()
 {
-    const QString &active = mActiveSubViewSettings.value().toString();
-    if (active.isEmpty()) {
-        mActiveSubView = MImOnScreenPlugins::SubView(MALIIT_DEFAULT_PLUGIN);
-        return;
-    }
+	const QString &active = mActiveSubViewSettings.value().toString();
+	if (active.isEmpty()) {
+		mActiveSubView = MImOnScreenPlugins::SubView(MALIIT_DEFAULT_PLUGIN);
+		return;
+	}
 
-    const QList<SubView> &activeList = fromSettings(QStringList() << active);
-    const MImOnScreenPlugins::SubView &subView = activeList.first();
+	const QList<SubView> &activeList = fromSettings(QStringList() << active);
+	const MImOnScreenPlugins::SubView &subView = activeList.first();
 
-    if (mActiveSubView == subView) {
-        return;
-    }
+	if (mActiveSubView == subView) {
+		return;
+	}
 
-    setAutoActiveSubView(subView);
+	if (!isSubViewEnabled(subView)) {
+		qDebug() << "Enabling activated subview" << subView.plugin + ":" + subView.id << "automatically";
+		// Insert the activated subview into enabled subviews at current position
+		const int activeSubviewIndex = mEnabledSubViews.indexOf(mActiveSubView);
+
+		mEnabledSubViews.insert(activeSubviewIndex, subView);
+
+		setEnabledSubViews(mEnabledSubViews);
+
+		// We rely on the subview to only be present once in enabled list
+		if (mEnabledSubViews.indexOf(mActiveSubView, activeSubviewIndex) != -1) {
+			qCritical() << "Duplicate entries of active subview in enabled subviews";
+		}
+	}
+
+	setAutoActiveSubView(subView);
 }
 
 const MImOnScreenPlugins::SubView MImOnScreenPlugins::activeSubView()
 {
-    return mActiveSubView;
+	return mActiveSubView;
 }
 
 void MImOnScreenPlugins::setActiveSubView(const MImOnScreenPlugins::SubView &subView)
 {
-    if (mActiveSubView == subView)
-        return;
-    mActiveSubView = subView;
+	if (mActiveSubView == subView)
+		return;
+	mActiveSubView = subView;
 
-    QList<MImOnScreenPlugins::SubView> subViews;
-    subViews << subView;
-    mActiveSubViewSettings.set(toSettings(subViews));
+	QList<MImOnScreenPlugins::SubView> subViews;
+	subViews << subView;
+	mActiveSubViewSettings.set(toSettings(subViews));
 
-    Q_EMIT activeSubViewChanged();
+	Q_EMIT activeSubViewChanged();
 }
 
 void MImOnScreenPlugins::setAutoActiveSubView(const MImOnScreenPlugins::SubView &subView)
 {
-    // Update the active subview without writing the configuration to disk
-    if (mActiveSubView == subView)
-        return;
+	// Update the active subview without writing the configuration to disk
+	if (mActiveSubView == subView)
+		return;
 
-    mActiveSubView = subView;
-    Q_EMIT activeSubViewChanged();
+	mActiveSubView = subView;
+	Q_EMIT activeSubViewChanged();
 }
 
 
 void MImOnScreenPlugins::setAllSubViewsEnabled(bool enable)
 {
-    if (mAllSubviewsEnabled != enable) {
-        mAllSubviewsEnabled = enable;
+	if (mAllSubviewsEnabled != enable) {
+		mAllSubviewsEnabled = enable;
 
-        if (mAllSubviewsEnabled) {
-            mLastEnabledSubViews = mEnabledSubViews;
-        } else {
-            if (not mLastEnabledSubViews.contains(mActiveSubView)) {
-                mLastEnabledSubViews.append(mActiveSubView);
-            }
-        }
+		if (mAllSubviewsEnabled) {
+			mLastEnabledSubViews = mEnabledSubViews;
+		} else {
+			if (not mLastEnabledSubViews.contains(mActiveSubView)) {
+				mLastEnabledSubViews.append(mActiveSubView);
+			}
+		}
 
-        setEnabledSubViews(mAllSubviewsEnabled ? mAvailableSubViews
-                                               : mLastEnabledSubViews);
-    }
+		setEnabledSubViews(mAllSubviewsEnabled ? mAvailableSubViews
+											   : mLastEnabledSubViews);
+	}
 }

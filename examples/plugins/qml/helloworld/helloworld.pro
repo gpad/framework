@@ -24,21 +24,21 @@ OTHER_FILES = $$PLUGIN_FILE
 BUILD_TYPE = unittest
 
 contains(BUILD_TYPE, skeleton) {
-    CONFIG += link_pkgconfig
-    PKGCONFIG += maliit-plugins-quick
-    plugin.path += $$system(pkg-config --variable pluginsdir maliit-plugins)
-    INSTALLS += plugin
+	CONFIG += link_pkgconfig
+	PKGCONFIG += maliit-plugins-quick
+	plugin.path += $$system(pkg-config --variable pluginsdir maliit-plugins)
+	INSTALLS += plugin
 }
 
 contains(BUILD_TYPE, unittest) {
-    # Used for testing purposes, can be deleted when used as a project skeleton
-    # Build against in-tree libs
-    TOP_DIR = ../../../..
+	# Used for testing purposes, can be deleted when used as a project skeleton
+	# Build against in-tree libs
+	TOP_DIR = ../../../..
 
-    include($$TOP_DIR/config.pri)
+	include($$TOP_DIR/config.pri)
 
-    plugin.path += $$MALIIT_TEST_PLUGINS_DIR/examples/qml/helloworld
-    INSTALLS += plugin
+	plugin.path += $$MALIIT_TEST_PLUGINS_DIR/examples/qml/helloworld
+	INSTALLS += plugin
 }
 
 QMAKE_CLEAN += libdummy.so*
